@@ -248,7 +248,7 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 	if (r > 0) {
 		if (datain[0] == 0x17 && datain[1] == 0x00) {
 			logprintf("ResetMSMice: Microsoft mouse already in X.org Windows compatibility mode. Not changing anything.");
-			r = 0; /* set return to zero, meaning no errors */
+			r = 1; /* set return to one - error because it's already fixed. */
 		} else if (datain[0] == 0x17) {
 			doreset = true;
 			logprintf("ResetMSMice: Mouse in non-compatible mode with X.org Windows. Trying to set compatibility mode... ");
@@ -261,7 +261,7 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 		print_usb_error(r);
 		goto cleanup;
 	}
-		
+	
 	if (doreset) {
 		/*---------------------------*/
 		/* Send reset codes to mouse */
@@ -315,6 +315,7 @@ int main(int argc, char** argv)
 	int busnum = 0, devnum = 0;
 	bool busnum_set = false, devnum_set = false;
 	bool daemonize = false;
+	bool do_usb_reset = true;
 	int choice;
 	libusb_device *dev, **devs;
 	struct libusb_device_descriptor desc;
@@ -328,10 +329,11 @@ int main(int argc, char** argv)
 		{"busnum", required_argument, 0, 'b'},
 		{"devnum", required_argument, 0, 'd'},
 		{"daemon", no_argument, 0, 'u'},
+		{"reset", no_argument, 0, 'r'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
-	const char* short_options = "b:d:u";
+	const char* short_options = "b:d:u:r";
 	
 	setlocale(LC_ALL, ""); /* We need this for the unicode mouse model name, extracted from the mouse */
 	
@@ -361,6 +363,9 @@ int main(int argc, char** argv)
 			break;
 		case 'u':
 			daemonize = true;
+			break;
+		case 'r':
+			do_usb_reset = true;
 			break;
 		case 'h':
 			puts(syntax);
@@ -424,7 +429,7 @@ int main(int argc, char** argv)
 	for (i = 0; i < cnt; i++) {
 		dev = devs[i];
 		if (dev == NULL) break; // this shouldn't happen
-
+		
 		currentBus = (int) libusb_get_bus_number(dev);
 		currentDev = (int) libusb_get_device_address(dev);
 		
@@ -462,6 +467,25 @@ int main(int argc, char** argv)
 			logprintf("ResetMSMice: Bus: %i  Device Number: %i", currentBus, currentDev);
 			logprintf("ResetMSMice: Vendor Name: %s", mousetype[x].vendor_name);
 			r = mousetype[x].probe(dev, &desc);
+			if (do_usb_reset && (r == 0)) {
+				logprintf("ResetMSMice: Attempting to reset USB device, as requested...");
+				int r2;
+				struct libusb_device_handle *devh = NULL;
+				r2 = libusb_open(dev, &devh);
+				if (r2 != 0) {
+					logprintf("ResetMSMice: Failed to open USB device for a USB reset.");
+					print_usb_error(r2);
+					goto cleanup;
+				}
+				r2 = libusb_reset_device(devh);
+				if (r2 != 0) {
+					logprintf("ResetMSMice: Failed to reset the USB device.");
+					print_usb_error(r2);
+					goto cleanup;
+				}
+				cleanup:
+					if (devh) libusb_close(devh);
+			}
 		}
 	}
 	libusb_free_device_list(devs, 1);
