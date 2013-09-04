@@ -6,6 +6,7 @@
  * This program basically just resets a setting in the mouse through usb communications and then exits. Only if the mouse matches vendor [0x045e] (Microsoft) and product code [0x0745] (a series of Microsoft Wireless mice) it will check for this usb setting.
  *
  * Copyright (C) 2011  Paul F. Richards (paulrichards321@gmail.com)
+ * Copyright (C) 2013  Albert Huang (alberth.dev@gmail.com) (fork author)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -94,14 +95,22 @@ const int interface = 0;
 void logprintf(const char *format, ...)
 {
 	va_list ap;
+	va_list ap2;
 
 	va_start(ap, format);
+	/* BUGFIX: On 64-bit systems (and on any system in general), a va_list
+     * can only be used once. To be used again, the original va_list should
+	 * be copied to another va_list, and then the second va_list used in
+	 * the second call.
+	 */
+	va_copy(ap2, ap);
 
-	vprintf(format, ap);
+	vprintf(format, ap2);
 	printf("\n");
 	vsyslog(LOG_DEBUG | LOG_USER, format, ap);
 
 	va_end(ap);
+	va_end(ap2);
 }
 
 
