@@ -1,44 +1,73 @@
-/*
- * Fixes scroll wheel issues with certain Wireless Microsoft mice in X.org (includes KDE & Gnome applications), where the vertical wheel scrolls abnormally fast. Only needed if you dual boot between Microsoft Windows and some linux distro.
- * Known to fix the vertical scroll wheel issue with the following models (and likely others related):
- *    Microsoft Wireless Mobile Mouse 3500
- *    Microsoft Wireless Mouse 5000
- * This program basically just resets a setting in the mouse through usb communications and then exits. Only if the mouse matches vendor [0x045e] (Microsoft) and product code [0x0745] (a series of Microsoft Wireless mice) it will check for this usb setting.
+/* 
+ * resetmsmice v0.9.1 - Microsoft Mice Fixer
+ * Copyright (C) 2011 Paul F. Richards (paulrichards321@gmail.com)
+ * Copyright (C) 2013 Albert Huang (alberth.dev@gmail.com) (fork author)
  *
- * Copyright (C) 2011  Paul F. Richards (paulrichards321@gmail.com)
- * Copyright (C) 2013  Albert Huang (alberth.dev@gmail.com) (fork author)
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * This program fixes scroll wheel issues with certain Wireless Microsoft mice
+ * in X.org, including KDE and Gnome applications, where the vertical wheel
+ * scrolls abnormally fast. This is only needed if you dual boot between
+ * Microsoft Windows and some linux distro. This is known to fix the vertical
+ * scroll wheel issue with the following models (and likely other similar models
+ * as well):
+ *    Microsoft Wireless Mobile Mouse 3500
+ *    Microsoft Wireless Mouse 5000
+ * This program basically resets a setting in the mouse through USB
+ * communication and then exits. This program only resets the setting if the
+ * mouse matches vendor [0x045e] (Microsoft) and product code [0x0745] (a series
+ * of Microsoft Wireless mice).
  */
 
 static const char* syntax = 
-	"Syntax: resetmsmice [OPTIONS]\n"
-	"Fixes scroll wheel issues with certain Wireless Microsoft mice in X.org (includes KDE & Gnome applications), where the vertical wheel scrolls abnormally fast. Only needed if you dual boot between Microsoft Windows and some linux distro.\n"
-	"Known to fix the vertical scroll wheel issue with the following models (and likely others related):\n"
-	"*    Microsoft Wireless Mobile Mouse 3500\n"
-	"*    Microsoft Wireless Mouse 5000\n"
-	"This program basically just resets a setting in the mouse through usb communications and then exits. Only if the mouse matches vendor [0x045e] (Microsoft) and product code [0x0745] (a series of Microsoft Wireless mice) it will check for this setting.\n"
-	"If it is run with no options, check all known Microsoft mice plugged into the system that can cause this issue.\n"
-	"All messages are printed on screen unless run as a daemon. Will always try to log to syslog.\n"
-	"This program normally needs to run with root privileges in order to talk to the mouse.\n\n"
-	"The following are optional arguments, which are used to run smoother when called through startup scripts or udev:\n"
-	"  -b, --busnum=NUMBER   only check the device on this usb bus, and this\n"
+    "resetmsmice v0.9.1 - Microsoft Mice Fixer\n\n"
+	"Usage: resetmsmice [OPTIONS]\n"
+	"Fixes scroll wheel issues with certain Wireless Microsoft mice in X.org.\n\n"
+
+	"The following are optional arguments:\n"
+	"  -b, --busnum=NUMBER   only check the device on this usb bus\n"
 	"  -d, --devnum=NUMBER   usb device number (useful with udev)\n"
-	"  -u, --daemon          detach from the console and run in a subprocess, to return control to caller immediately (useful with startup scripts)\n"
+	"  -u, --daemon          detach from the console and run in a subprocess to\n"
+	"                        return control to caller immediately (useful with\n"
+	"                        startup scripts and udev)\n"
+	"  -r, --reset           perform a USB reset on the device after the \"soft\"\n"
+	"                        reset\n"
 	"  -h, --help            this help screen.\n"
-	"\nReport bugs to the writer of this program: Paul F. Richards (paulrichards321@gmail.com)";
+	"These arguments may be useful when run from startup scripts and/or udev.\n\n"
+	
+ 	"This program fixes scroll wheel issues with certain Wireless Microsoft mice\n"
+ 	"in X.org, including KDE and Gnome applications, where the vertical wheel\n"
+ 	"scrolls abnormally fast. This is only needed if you dual boot between\n"
+ 	"Microsoft Windows and some linux distro. This is known to fix the vertical\n"
+ 	"scroll wheel issue with the following models (and likely other similar models\n"
+ 	"as well):\n"
+ 	"   Microsoft Wireless Mobile Mouse 3500\n"
+ 	"   Microsoft Wireless Mouse 5000\n"
+ 	"This program basically resets a setting in the mouse through USB\n"
+ 	"communication and then exits. This program only resets the setting if the\n"
+ 	"mouse matches vendor [0x045e] (Microsoft) and product code [0x0745] (a series\n"
+ 	"of Microsoft Wireless mice).\n\n"
+ 	
+	"If this is run with no options, by default, the program will just do a check.\n"
+	"All messages are printed on screen unless the program is run as a daemon.\n"
+	"The program will then try to log to syslog as a daemon process.\n"
+	"This program normally needs to run with root privileges in order to communicate\n"
+	"with the mouse.\n\n"
+	
+	"Report bugs to the authors of this program:\n"
+	"   Paul F. Richards (paulrichards321@gmail.com)\n"
+	"   Albert Huang (alberth.dev@gmail.com) (fork author)\n";
 
 #include <stdio.h>
 #include <stdarg.h>
