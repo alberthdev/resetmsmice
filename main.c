@@ -125,23 +125,22 @@ void logprintf(const char *format, ...)
 {
 	va_list ap;
 	va_list ap2;
-
+	
 	va_start(ap, format);
 	/* BUGFIX: On 64-bit systems (and on any system in general), a va_list
-     * can only be used once. To be used again, the original va_list should
+	 * can only be used once. To be used again, the original va_list should
 	 * be copied to another va_list, and then the second va_list used in
 	 * the second call.
 	 */
 	va_copy(ap2, ap);
-
+	
 	vprintf(format, ap2);
 	printf("\n");
 	vsyslog(LOG_DEBUG | LOG_USER, format, ap);
-
+	
 	va_end(ap);
 	va_end(ap2);
 }
-
 
 int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor *desc_ptr)
 {
@@ -155,17 +154,17 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 	unsigned char dataout[2] = { 0x17, 0x00 };
 	bool doreset = false;
 	uint16_t langid = 0;
-
-    /*-----------------*/
+	
+	/*-----------------*/
 	/* Open the device */
 	/*-----------------*/
 	r = libusb_open(dev, &devh);
 	if (r != 0) {
-		logprintf("Failed to open usb device.");
+		logprintf("ResetMSMice: Failed to open USB device.");
 		print_usb_error(r);
 		goto cleanup;
 	}
-
+	
 	/*---------------------------------------------------------------------
 		TODO: Does the configuration have to be set on the device? 
 		Cannot get this to work, but does not appear to be needed:
@@ -173,39 +172,39 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 		r = libusb_set_configuration(devh, interface);
 		if (r < 0) {
 			print_usb_error(r);
-
+			
 		}
 	---------------------------------------------------------------------*/
-		
-	/*-------------------------------------------------------------*/
-	/* Check for active kernel driver, if so, detach kernel driver */
-	/*-------------------------------------------------------------*/
+	
+	/*-----------------------------------------------------------------*/
+	/* Check for active kernel driver - if found, detach kernel driver */
+	/*-----------------------------------------------------------------*/
 	if (libusb_kernel_driver_active(devh, interface) == 1) {
 		r = libusb_detach_kernel_driver(devh, interface);
 		if (r == 0) {
 			kerneldriver = true;
 		} else {
 			kerneldriver = false;
-			logprintf("Cannot open mouse, failed to detach kernel driver.");
+			logprintf("ResetMSMice: Cannot open mouse, failed to detach kernel driver.");
 			print_usb_error(r);
 			goto cleanup;
 		}
 	}
-		
-	/*------------------------------------------------------------------*/
-	/* Claim interface, a necessary library routine before sending data */
-	/*------------------------------------------------------------------*/
+	
+	/*---------------------------------------------------------------*/
+	/* Claim interface - a necessary step before sending any data    */
+	/*---------------------------------------------------------------*/
 	r = libusb_claim_interface(devh, interface);
 	if (r == 0) {
 		claimed = true;
 	} else {
 		claimed = false;
-		logprintf("Cannot open mouse and claim interface.");
+		logprintf("ResetMSMice: Cannot open mouse and claim interface.");
 		print_usb_error(r);
 		goto cleanup;
 	}
-
-    /*-------------------------*/
+	
+	/*-------------------------*/
 	/* Request mouse language  */
 	/*-------------------------*/
 	memset(language_in, 0, sizeof(language_in));
@@ -213,10 +212,10 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 	if (r > 2) {
 		langid = (language_in[3] << 8) | language_in[2];
 	} else {
-		logprintf("Could not retreive mouse language code.");
+		logprintf("ResetMSMice: Could not retreive mouse language code.");
 		print_usb_error(r);
 	}
-
+	
 	/*---------------------------*/
 	/* Request mouse model name  */
 	/*---------------------------*/
@@ -234,31 +233,31 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 		iconv_t iconv_ptr = iconv_open("UTF-8", "UCS2");
 		if (iconv_ptr) {
 			iconv(iconv_ptr, &model_name_ptr, &inbytes_left, &model_name_utf_ptr, &outbytes_left);
-			logprintf("Model Name: %s", model_name_utf);
+			logprintf("ResetMSMice: Model Name: %s", model_name_utf);
 			iconv_close(iconv_ptr);
 		}
 	} else {
-		logprintf("Failed to get model name from mouse.");
+		logprintf("ResetMSMice: Failed to get model name from mouse.");
 		print_usb_error(r);
 	}
-		
+	
 	/*-------------------------*/
 	/* Request status of mouse */
 	/*-------------------------*/
 	r = libusb_control_transfer(devh, LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_IN, 0x01, 0x317, 1, datain, 2, TIME_OUT_VAL);
 	if (r > 0) {
 		if (datain[0] == 0x17 && datain[1] == 0x00) {
-			logprintf("Microsoft mouse already in X.org Windows compatibility mode.\n");
+			logprintf("ResetMSMice: Microsoft mouse already in X.org Windows compatibility mode. Not changing anything.");
 			r = 0; /* set return to zero, meaning no errors */
 		} else if (datain[0] == 0x17) {
 			doreset = true;
-			logprintf("Mouse in non-compatible mode with X.org Windows. Trying to set compatibility mode... ");
+			logprintf("ResetMSMice: Mouse in non-compatible mode with X.org Windows. Trying to set compatibility mode... ");
 		} else {
-			logprintf("Unknown mode detected on mouse. Hexadecimal values returned: %X %X", (int) datain[0], (int) datain[1]);
-			logprintf("Leaving mouse as is. Report this message and values to programmer.");
+			logprintf("ResetMSMice: Unknown mode detected on mouse. Hexadecimal values returned: %X %X", (int) datain[0], (int) datain[1]);
+			logprintf("ResetMSMice: Leaving mouse as is. Report this message and values to programmer.");
 		}
 	} else {
-		logprintf("Could not determine what mode mouse is in. Leaving mouse alone.");
+		logprintf("ResetMSMice: Could not determine what mode mouse is in. Leaving mouse alone.");
 		print_usb_error(r);
 		goto cleanup;
 	}
@@ -269,10 +268,10 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 		/*---------------------------*/
 		r = libusb_control_transfer(devh, LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_ENDPOINT_OUT, 0x09, 0x317, 1, dataout, 2, TIME_OUT_VAL);
 		if (r == 2) {
-			logprintf("Successfully set mouse in X Windows compatibility mode.\n");
-			r = 0; /* set return to zero, meaning sucess */
+			logprintf("ResetMSMice: Successfully set mouse in X Windows compatibility mode.\n");
+			r = 0; /* set return to zero, meaning success */
 		} else {
-			logprintf("Unexpected return code from usb reset.");
+			logprintf("ResetMSMice: Unexpected return code from usb reset.");
 			print_usb_error(r);
 			goto cleanup;
 		}
@@ -288,30 +287,28 @@ int ms_probe_wireless_mouse(libusb_device *dev, struct libusb_device_descriptor 
 	return r;
 }
 
-
 int print_usb_error(int error_value)
 {
 	switch (error_value) {
 	case LIBUSB_ERROR_TIMEOUT:
-		logprintf("Timeout in communication with mouse.");
+		logprintf("ResetMSMice: Timeout in communication with mouse.");
 		break;
 	case LIBUSB_ERROR_PIPE:
-		logprintf("Pipe error in communication with mouse.");
+		logprintf("ResetMSMice: Pipe error in communication with mouse.");
 		break;
 	case LIBUSB_ERROR_NO_DEVICE:
-		logprintf("Received \"no device\" error in communication with mouse.");
+		logprintf("ResetMSMice: Received \"no device\" error in communication with mouse.");
 		break;
 	case LIBUSB_ERROR_NO_MEM:
-		logprintf("Cannot open Microsoft device: out of memory error");
+		logprintf("ResetMSMice: Cannot open Microsoft device: out of memory error");
 		break;
 	case LIBUSB_ERROR_ACCESS:
-		logprintf("Cannot open Microsoft device: insufficient permissions");
+		logprintf("ResetMSMice: Cannot open Microsoft device: insufficient permissions");
 		break;
 	}
-	logprintf("libusb returned: %i", error_value);
+	logprintf("ResetMSMice: libusb returned: %i", error_value);
 	return error_value;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -336,8 +333,8 @@ int main(int argc, char** argv)
 	};
 	const char* short_options = "b:d:u";
 	
-	setlocale(LC_ALL, ""); /* We need this for the unicode mouse model name, pulled from mouse */
-
+	setlocale(LC_ALL, ""); /* We need this for the unicode mouse model name, extracted from the mouse */
+	
 	/*--------------------------------*/
 	/* Parse the command line options */
 	/*--------------------------------*/
@@ -375,53 +372,53 @@ int main(int argc, char** argv)
 		choice = getopt_long(argc, argv, short_options, long_options, &option_index);
 	}
 	
-	/* Make sure user supplied both the bus number and device number and not just one or the other... */
+	/* Make sure user supplied both the bus number and device number, and not just one or the other... */
 	if (devnum_set || busnum_set) {
 		if (devnum_set == false || busnum_set == false) {
-			puts("Please supply BOTH bus and device number.");
+			puts("ResetMSMice: Please supply BOTH bus and device number.");
 			puts(syntax);
 			exit(1);
 		}
 	}
-
+	
 	if (daemonize) {
-		pID = fork(); /* This is needed when we need to return from udev as soon as possible */
-
+		pID = fork(); /* This is needed when we need to return to udev or a startup script as soon as possible */
+		
 		if (pID == 0) {
 			close(0); /* In child process */
 			close(1);
 			close(2);
 			setsid();
 		} else if (pID < 0) {
-			perror("Fatal error: cannot fork process");
+			perror("ResetMSMice: Fatal error: cannot fork process");
 			exit(1); /* if error */
 		} else {
 			exit(0); /* The parent process can close */
 		}
 	}
-
+	
 	char logname[32];
 	snprintf(logname, sizeof(logname), "resetmsmice[%i]", getpid());
 	openlog(logname, LOG_CONS, LOG_USER);
 	
 	if (devnum_set) {
-		logprintf("Checking for X.org compatibility mode on usb bus %i device %i...", busnum, devnum);
+		logprintf("ResetMSMice: Checking for X.org compatibility mode on USB bus %i device %i...", busnum, devnum);
 	} else {
-		logprintf("Checking for X.org compatibility mode on all Microsoft usb mice plugged into the system...");
+		logprintf("ResetMSMice: Checking for X.org compatibility mode on all Microsoft USB mice plugged into the system...");
 	}
 	
 	r = libusb_init(NULL);
 	if (r < 0) {
-		logprintf("Error initializing usb system: libusb returned value: %X", r);
+		logprintf("ResetMSMice: Error initializing usb system: libusb returned value: %X", r);
 		return r;
 	}
-
+	
 	cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0) {
-		logprintf("Error getting usb device list: libusb returned value: %X", cnt);
+		logprintf("ResetMSMice: Error getting USB device list: libusb returned value: %X", cnt);
 		return cnt;
 	}
-
+	
 	int i;
 	int currentBus, currentDev;
 	for (i = 0; i < cnt; i++) {
@@ -430,7 +427,7 @@ int main(int argc, char** argv)
 
 		currentBus = (int) libusb_get_bus_number(dev);
 		currentDev = (int) libusb_get_device_address(dev);
-
+		
 		if (busnum_set && devnum_set) {
 			if (currentBus != busnum || currentDev != devnum)
 				continue;
@@ -438,14 +435,14 @@ int main(int argc, char** argv)
 		
 		r = libusb_get_device_descriptor(dev, &desc);
 		if (r < 0) {
-			logprintf("Failed to get device descriptor on usb device #%i", i);
-			logprintf("libusb returned: %i", r);
+			logprintf("ResetMSMice: Failed to get device descriptor on USB device #%i", i);
+			logprintf("ResetMSMice: libusb returned: %i", r);
 			continue;
 		}
-
-		/*---------------------------------------------*/
-		/* Skip to next device if not vendor id        */
-		/*---------------------------------------------*/
+		
+		/*------------------------------------------------*/
+		/* Skip to next device if vendor id doesn't match */
+		/*------------------------------------------------*/
 		bool foundmatch = false;
 		int x;
 		for (x = 0; x < KNOWN_MICE_IDS; x++) {
@@ -458,25 +455,25 @@ int main(int argc, char** argv)
 		}
 		
 		if (foundmatch) {
-			logprintf("Mouse detected that might not be in X.org compatible mode. Making sure device is in compatibility mode...");
-			logprintf("Vendor Id: %04X  Product Id: %04X  Release: %i", 
+			logprintf("ResetMSMice: Mouse detected that might not be in X.org compatible mode. Making sure device is in compatibility mode...");
+			logprintf("ResetMSMice: Vendor Id: %04X  Product Id: %04X  Release: %i", 
 				(int) mousetype[x].vendor_id, (int) mousetype[x].model_id, 
 				(int) desc.bcdDevice);
-			logprintf("Bus: %i  Device Number: %i", currentBus, currentDev);
-			logprintf("Vendor Name: %s", mousetype[x].vendor_name);
+			logprintf("ResetMSMice: Bus: %i  Device Number: %i", currentBus, currentDev);
+			logprintf("ResetMSMice: Vendor Name: %s", mousetype[x].vendor_name);
 			r = mousetype[x].probe(dev, &desc);
 		}
 	}
 	libusb_free_device_list(devs, 1);
-
+	
 	libusb_exit(NULL);
-
+	
 	if (problem_devices == 0) {
 		if (devnum_set) {
-			logprintf("USB device at location %i:%i not known to be incompatible with X.org", busnum, devnum);
+			logprintf("ResetMSMice: USB device at location %i:%i not known to be incompatible with X.org", busnum, devnum);
 		} else {
-			logprintf("No known X.org problematic mice attached to system.");
+			logprintf("ResetMSMice: No known X.org problematic mice attached to system.");
 		}
 	}
-	return r; /* This program returns 0 on success, otherwise a libusb return code */
+	return r; /* This program returns 0 on success, otherwise it returns a libusb return code instead! */
 }
