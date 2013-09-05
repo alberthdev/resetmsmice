@@ -73,7 +73,7 @@ Some commands needed to install and run ResetMSMice require superuser privleges.
 For instance, `make install` usually requires superuser privleges to install to
 system directories.
 
-**In Ubuntu, Linux Mint, Debian, or any Linux OS with sudo, run:**  
+**In Ubuntu, Linux Mint, Debian, or any Linux OS with `sudo`, run:**  
 `sudo make install`  
 You need to enter YOUR password (not the root password).
 
@@ -96,9 +96,15 @@ You need to enter the ROOT (superuser) password.
 `make install`  
 
 ## Running ResetMSMice ##
-Simply run it as root to fix the problem! Alternatively, you may wish to
-add a udev rule to allow the program to run without requiring root
-permissions.  
+Simply run it as root to fix the problem! Follow the above instructions
+to run ResetMSMice as root. One of the commands below should work:
+
+    sudo resetmsmice
+    su -c "resetmsmice"
+    resetmice (as root)
+
+Alternatively, you may wish to add a udev rule to allow the program to
+run without requiring root permissions.  
 
 ### Usage ###
     resetmsmice v0.9.1 - Microsoft Mice Fixer
