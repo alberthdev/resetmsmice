@@ -101,7 +101,7 @@ to run ResetMSMice as root. One of the commands below should work:
 
     sudo resetmsmice
     su -c "resetmsmice"
-    resetmice (as root)
+    resetmsmice (as root)
 
 Alternatively, you may wish to add a udev rule to allow the program to
 run without requiring root permissions.  
