@@ -95,19 +95,50 @@ You need to enter the ROOT (superuser) password.
 **In all other Linux OSes, run as root:**  
 `make install`  
 
-## Configure System Startup ##
-To enable resetmsmice to run on boot, run `resetmsmice-enable-boot.sh` as root (with `sudo` or `su`, if available) with one of the following options:
+## Running ResetMSMice ##
+Simply run it as root to fix the problem! Alternatively, you may wish to
+add a udev rule to allow the program to run without requiring root
+permissions.  
 
-* **If you run a recent version of Ubuntu, Kubuntu, Mint Linux, or any other Linux distro that supports and uses upstart for system boot**:  
+### Usage ###
+    resetmsmice v0.9.1 - Microsoft Mice Fixer
+    
+    Usage: resetmsmice [OPTIONS]
+    Fixes scroll wheel issues with certain Wireless Microsoft mice in X.org.
+    
+    The following are optional arguments:
+      -b, --busnum=NUMBER   only check the device on this usb bus
+      -d, --devnum=NUMBER   usb device number (useful with udev)
+      -u, --daemon          detach from the console and run in a subprocess to
+                            return control to caller immediately (useful with
+                            startup scripts and udev)
+      -r, --reset           perform a USB reset on the device after the "soft"
+                            reset
+      -h, --help            this help screen.
+    These arguments may be useful when run from startup scripts and/or udev.
+
+## Configure System Startup ##
+To enable resetmsmice to run on boot, run `resetmsmice-enable-boot.sh`
+as root (with `sudo` or `su`, if available) with one of the following
+options:
+
+* **If you run a recent version of Ubuntu, Kubuntu, Mint Linux, or any
+    other Linux distro that supports and uses upstart for system boot**:  
     `resetmsmice-enable-boot.sh --upstart`
 
-* **If you run a recent version Fedora or OpenSUSE or any other Linux distro that supports and uses systemd for system boot, and want systemd to launch resetmsmice automatically on boot**:  
+* **If you run a recent version Fedora or OpenSUSE or any other Linux
+    distro that supports and uses systemd for system boot, and want
+    systemd to launch resetmsmice automatically on boot**:  
     `resetmsmice-enable-boot.sh --systemd`
 
-* **If you run Debian, Redhat, or any other distro that supports and uses System V style startup scripts**:  
+* **If you run Debian, Redhat, or any other distro that supports and
+    uses System V style startup scripts**:  
     `resetmsmice-enable-boot.sh --sysv`
 
-* **Don't know what option to use? System V startup scripts are fairly common and a lot of distros still keep it for backwards compatibility, so if you don't know what type of startup scripts your system uses:**  
+* **Don't know what option to use? System V startup scripts are fairly
+    common and a lot of distros still keep it for backwards
+    compatibility, so if you don't know what type of startup scripts
+    your system uses:**  
     `resetmsmice-enable-boot.sh --sysv`
 
 ## Disable System Startup ##
@@ -121,7 +152,7 @@ This will stop resetmsmice from running on bootup.
 
     resetmsmice v0.9.1 - Microsoft Mice Fixer
     Copyright (C) 2011 Paul F. Richards (paulrichards321@gmail.com)
-    Copyright (C) 2013 Albert Huang (alberth.debian@gmail.com) (fork author)
+    Copyright (C) 2013 Albert Huang (alberth.dev@gmail.com) (fork author)
     
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
